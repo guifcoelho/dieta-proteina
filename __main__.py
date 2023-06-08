@@ -38,23 +38,37 @@ def resolver(dieta_semanal: float, tipos_proteina: dict[str, TipoProteina], prod
         )  
         for produto in produtos
     }
+    v_produto_parc = {
+        produto.nome: m.addVar(
+            name=f"v_produto_parc({produto.nome})",
+            vtype="CONTINUOUS",
+            lb=produto.minimo_qtd,
+            ub=produto.maximo_qtd if produto.maximo_qtd else math.inf
+        )  
+        for produto in produtos
+    }
 
     m.setObjective(
         scip.quicksum(v_produto[produto.nome]*produto.preco for produto in produtos),
         'minimize'
     )
 
+    m.addConss(
+        v_produto[produto.nome] >= v_produto_parc[produto.nome]
+        for produto in produtos
+    )
+
     m.addCons(
         scip.quicksum(
-            v_produto[produto.nome]*produto.peso_unit
+            v_produto_parc[produto.nome]*produto.peso_unit
             for produto in produtos
         )
-        >= dieta_semanal
+        == dieta_semanal
     )
 
     m.addConss(
         scip.quicksum(
-            v_produto[produto.nome]*produto.peso_unit
+            v_produto_parc[produto.nome]*produto.peso_unit
             for produto in produtos
             if tipo_proteina in produto.tipos_proteina
         )
@@ -64,7 +78,7 @@ def resolver(dieta_semanal: float, tipos_proteina: dict[str, TipoProteina], prod
     )
     m.addConss(
         scip.quicksum(
-            v_produto[produto.nome]*produto.peso_unit
+            v_produto_parc[produto.nome]*produto.peso_unit
             for produto in produtos
             if tipo_proteina in produto.tipos_proteina
         )
@@ -81,18 +95,25 @@ def resolver(dieta_semanal: float, tipos_proteina: dict[str, TipoProteina], prod
 
     resultado_dados = []
     for produto in produtos:
-        qtd_produto = int(round(m.getVal(v_produto[produto.nome])))
-        if qtd_produto >= 1:
+        qtd_produto_compra = int(round(m.getVal(v_produto[produto.nome])))
+        qtd_produto_consumo = m.getVal(v_produto_parc[produto.nome])
+        if qtd_produto_compra >= 1:
             resultado_dados += [(
-                produto.nome, qtd_produto, produto.peso_unit, produto.peso_unit*qtd_produto, produto.preco * qtd_produto
+                produto.nome,
+                qtd_produto_compra,
+                produto.peso_unit,
+                produto.peso_unit*qtd_produto_consumo,
+                produto.peso_unit*qtd_produto_compra,
+                produto.peso_unit*qtd_produto_consumo / (produto.peso_unit*qtd_produto_compra),
+                produto.preco * qtd_produto_compra
             )]
 
     resultado = \
         pd.DataFrame(
             resultado_dados,
-            columns=['produto', 'quantidade', 'peso_unit', 'peso', 'custo']
+            columns=['produto', 'quantidade_compra', 'peso_unit', 'peso_consumo', 'peso_compra', '% consumido', 'custo']
         )\
-        .sort_values(['peso', 'custo', 'produto'], ascending=[False, False, True])\
+        .sort_values(['peso_consumo', 'custo', 'produto'], ascending=[False, False, True])\
         .reset_index(drop=True)
 
     return resultado
@@ -124,7 +145,7 @@ def main():
     print()
     print(resultado)
     print("Dieta semanal mínima:", f"{dieta_semanal} g")
-    print("Dieta atingida:", f"{resultado['peso'].sum()} g")
+    print("Dieta atingida:", f"{resultado['peso_consumo'].sum()} g")
     print("Custo:", f"R$ {resultado['custo'].sum()}")
         
 

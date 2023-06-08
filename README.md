@@ -2,15 +2,25 @@
 Calcula a quantidade de produtos a ser comprada para atender a dieta de proteína, minimizando o custo.
 
 ## Variáveis
-- $\alpha_i \leq x_i \leq \beta_i \in Z^+, \forall i \in I$
+- $\alpha_i \leq x_i \leq \beta_i \in R^+, \forall i \in I$
+
+  Quantidade de produtos consumida.
+
+- $\alpha_i \leq \bar{x}_i \leq \beta_i \in Z^+, \forall i \in I$
+
+  Quantidade inteira de produtos comprada.
 
   Onde $\alpha_i$ representa a menor quantidade do produto $i$ e $\beta_i$ representa a maior quantidade do produto $i$.
   
 ## Restrições
 
-- $\sum\limits_{i} x_i \cdot P_i \geq \bar{P}$
+- $\bar{x}_i \geq x_i, \forall i \in I$
 
-  A soma do peso $P_i$ de cada produto $i$ multiplicada pela quantidade precisa ser menor que a dieta mínima total $\bar{P}$.
+  Define a quantidade inteira a ser comprada baseada em quanto é consumido.
+
+- $\sum\limits_{i} x_i \cdot P_i = \bar{P}$
+
+  A soma do peso $P_i$ de cada produto $i$ multiplicada pela quantidade (peso consumido) precisa ser igual a dieta mínima total $\bar{P}$.
   
 - $T^{MIN}_j \leq \sum\limits_i x_i \cdot P_i \leq T^{MAX}_j, \forall j \in J$, com $i \in I (j \in T^P_i)$
 
@@ -18,7 +28,7 @@ Calcula a quantidade de produtos a ser comprada para atender a dieta de proteín
   
 ## Função objetivo
 
-- Minimizar: $\sum\limits_{i} x_i \cdot C_i$
+- Minimizar: $\sum\limits_{i} \bar{x}_i \cdot C_i$
 
   Minimiza a soma do custo $C_i$ dos produtos $i \in I$ escolhidos.
 
